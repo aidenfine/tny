@@ -2,11 +2,13 @@ package urls
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
+	"math/rand"
 	"net/http"
-	"os/exec"
+	"time"
 
 	"github.com/aidenfine/tny/tny-src/models"
+	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -14,15 +16,23 @@ import (
 func CreateShortUrl(w http.ResponseWriter, r *http.Request, db *sqlx.DB) {
 	var newShortUrl models.UrlDataBaseEntry
 	if err := json.NewDecoder(r.Body).Decode(&newShortUrl); err != nil {
-		log.Printf("decode error create url")
 		http.Error(w, "invalid request payload", http.StatusAccepted)
 		return
 	}
-	uuid := generateUUID()
+	var shortUrl string
+	var doesExist bool
+
+	for {
+		shortUrl = generateShortUrl(6)
+		doesExist = doesShortUrlExist(shortUrl, db)
+		if !doesExist {
+			break
+		}
+	}
+
 	query := `INSERT INTO urls (short_url, long_url, created_by) VALUES ($1, $2, $3) RETURNING short_url`
-	query_err := db.QueryRow(query, uuid, newShortUrl.LongUrl, newShortUrl.CreatedBy).Scan(&newShortUrl.ShortUrl)
+	query_err := db.QueryRow(query, shortUrl, newShortUrl.LongUrl, newShortUrl.CreatedBy).Scan(&newShortUrl.ShortUrl)
 	if query_err != nil {
-		log.Printf("failed creating short url", query_err)
 		http.Error(w, "Failed to create short url", http.StatusInternalServerError)
 		return
 	}
@@ -32,10 +42,39 @@ func CreateShortUrl(w http.ResponseWriter, r *http.Request, db *sqlx.DB) {
 	// INSERT WILL RETURN ERR if item with same PK already exists
 }
 
-func generateUUID() string {
-	uuid, err := exec.Command("uuidgen").Output()
+func GetShortUrl(w http.ResponseWriter, r *http.Request, db *sqlx.DB) {
+	vars := mux.Vars(r)
+	short_url := vars["short_url"]
+	var databaseItem models.UrlsDataBaseItem
+
+	query := `SELECT short_url, long_url, domain, created_by, created_at FROM urls WHERE short_url = $1`
+	err := db.Get(&databaseItem, query, short_url)
 	if err != nil {
-		log.Panic(err)
+		http.Error(w, "short_url is not valid", http.StatusNotFound)
+		return
 	}
-	return string(uuid)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(databaseItem)
+}
+
+func generateShortUrl(length int) string {
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+	characters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456790")
+	res := make([]rune, length)
+	for i := range res {
+		res[i] = characters[rand.Intn(len(characters))]
+	}
+	return string(res)
+}
+
+// Returns True if exists
+func doesShortUrlExist(shortUrl string, db *sqlx.DB) bool {
+	res := false
+	query := `SELECT EXISTS (SELECT 1 FROM urls WHERE short_url = $1)`
+	err := db.QueryRow(query, shortUrl).Scan(&res)
+	if err != nil {
+		fmt.Println("Issue checking for short url")
+	}
+	return res
 }
