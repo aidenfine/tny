@@ -42,20 +42,36 @@ func CreateShortUrl(w http.ResponseWriter, r *http.Request, db *sqlx.DB) {
 	// INSERT WILL RETURN ERR if item with same PK already exists
 }
 
-func GetShortUrl(w http.ResponseWriter, r *http.Request, db *sqlx.DB) {
-	vars := mux.Vars(r)
-	short_url := vars["short_url"]
+func getShortUrlItem(short_url string, db *sqlx.DB) (models.UrlsDataBaseItem, error) {
 	var databaseItem models.UrlsDataBaseItem
 
 	query := `SELECT short_url, long_url, domain, created_by, created_at FROM urls WHERE short_url = $1`
+	fmt.Println(query, "query")
+	fmt.Println(short_url, "short url ")
 	err := db.Get(&databaseItem, query, short_url)
 	if err != nil {
-		http.Error(w, "short_url is not valid", http.StatusNotFound)
+		fmt.Println("DB error:", err)
+	}
+	fmt.Println(databaseItem, "getShortUrlItemQueryResponse")
+	return databaseItem, err
+}
+
+func RedirectToLongUrl(w http.ResponseWriter, r *http.Request, db *sqlx.DB) {
+	vars := mux.Vars(r)
+	shortUrl := vars["shortUrl"]
+
+	if shortUrl == "" {
+		http.Error(w, "Short URL is missing", http.StatusBadRequest)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(databaseItem)
+	databaseItem, err := getShortUrlItem(shortUrl, db)
+	fmt.Println(databaseItem, "databae item")
+	if err != nil {
+		http.Error(w, "An issue occured when getting long url", http.StatusBadRequest)
+		return
+	}
+	http.Redirect(w, r, databaseItem.LongUrl, http.StatusFound)
+
 }
 
 func generateShortUrl(length int) string {
