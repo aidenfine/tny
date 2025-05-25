@@ -9,6 +9,7 @@ import (
 type Config struct {
 	GO_ENV   string
 	BASE_URL string
+	PORT     string
 }
 
 var Envs = initConfig()
@@ -18,6 +19,7 @@ func initConfig() Config {
 	return Config{
 		GO_ENV:   getEnv("GO_ENV", "dev"),
 		BASE_URL: getEnv("BASE_URL", "http://localhost:8080"),
+		PORT:     getEnv("PORT", "8080"),
 	}
 }
 
