@@ -1,16 +1,17 @@
 package router
 
 import (
+	"context"
 	"log"
 	"net/http"
 
 	"github.com/aidenfine/tny/tny-src/services/urls"
 	"github.com/gorilla/mux"
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/cors"
 )
 
-func StartRouter(db *sqlx.DB) error {
+func StartRouter(ctx context.Context, db *pgxpool.Pool) error {
 	r := mux.NewRouter()
 
 	// setup cors
@@ -25,7 +26,7 @@ func StartRouter(db *sqlx.DB) error {
 		AllowCredentials: true,
 	})
 
-	registerRoutes(r, db)
+	registerRoutes(ctx, r, db)
 
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -36,6 +37,6 @@ func StartRouter(db *sqlx.DB) error {
 
 	return http.ListenAndServe(":8080", handler)
 }
-func registerRoutes(r *mux.Router, db *sqlx.DB) {
-	urls.RegisterUrlsRoutes(r, db)
+func registerRoutes(ctx context.Context, r *mux.Router, db *pgxpool.Pool) {
+	urls.RegisterUrlsRoutes(ctx, r, db)
 }

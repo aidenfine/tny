@@ -7,9 +7,10 @@ import (
 )
 
 type Config struct {
-	GO_ENV   string
-	BASE_URL string
-	PORT     string
+	GO_ENV       string
+	BASE_URL     string
+	PORT         string
+	DATABASE_URL string
 }
 
 var Envs = initConfig()
@@ -17,9 +18,10 @@ var Envs = initConfig()
 func initConfig() Config {
 	godotenv.Load()
 	return Config{
-		GO_ENV:   getEnv("GO_ENV", "dev"),
-		BASE_URL: getEnv("BASE_URL", "http://localhost:8080"),
-		PORT:     getEnv("PORT", "8080"),
+		GO_ENV:       getEnv("GO_ENV", "dev"),
+		BASE_URL:     getEnv("BASE_URL", "http://localhost:8080"),
+		PORT:         getEnv("PORT", "8080"),
+		DATABASE_URL: getEnv("DATABASE_URL", ""),
 	}
 }
 

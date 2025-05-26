@@ -1,21 +1,22 @@
 package urls
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func RegisterUrlsRoutes(r *mux.Router, db *sqlx.DB) {
+func RegisterUrlsRoutes(ctx context.Context, r *mux.Router, db *pgxpool.Pool) {
 	urlsRouterInternal := r.PathPrefix("/v1/urls").Subrouter()
 	urlsRouterExternal := r.PathPrefix("").Subrouter()
 
 	urlsRouterInternal.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		CreateShortUrl(w, r, db)
+		CreateShortUrl(ctx, w, r, db)
 	}).Methods("POST")
 	urlsRouterExternal.HandleFunc("/{shortUrl}", func(w http.ResponseWriter, r *http.Request) {
-		RedirectToLongUrl(w, r, db)
+		RedirectToLongUrl(ctx, w, r, db)
 	}).Methods("GET")
 
 }

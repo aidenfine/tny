@@ -2,6 +2,9 @@
 package main
 
 import (
+	"context"
+
+	"github.com/aidenfine/tny/config"
 	"github.com/aidenfine/tny/database"
 	"github.com/aidenfine/tny/tny-src/router"
 )
@@ -15,10 +18,15 @@ func main() {
 }
 
 func setup() error {
-	// LOAD ENVS LATER SKIP FOR NOW
-	db, err := database.ConnectDataBase()
+	err := config.LoadEnv()
 	if err != nil {
 		return err
 	}
-	return router.StartRouter(db)
+	db, err := database.ConnectDatabase()
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+
+	return router.StartRouter(ctx, db)
 }

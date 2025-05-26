@@ -1,26 +1,43 @@
 package database
 
 import (
+	"context"
 	"log"
+	"os"
 
-	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
 )
 
-var DB *sqlx.DB
+var DB *pgxpool.Pool
 
-func ConnectDataBase() (*sqlx.DB, error) {
-	var err error
-	DB, err = sqlx.Connect("postgres", "user=postgres dbname=tny sslmode=disable password=root host=localhost")
+func ConnectDatabase() (*pgxpool.Pool, error) {
+	err := godotenv.Load()
 	if err != nil {
-		log.Panicln("Database connection error", err)
-		return nil, err
+		log.Fatal("Error loading .env file")
 	}
-	if err := DB.Ping(); err != nil {
-		log.Println("Database Ping failed", err)
-		return nil, err
-	}
-	log.Println("Connected")
-	return DB, nil
 
+	connStr := os.Getenv("DATABASE_URL")
+	if connStr == "" {
+		log.Fatal("DATABASE_URL is not set in the environment")
+	}
+
+	config, err := pgxpool.ParseConfig(connStr)
+	if err != nil {
+		log.Fatalf("Unable to parse config: %v\n", err)
+	}
+
+	DB, err = pgxpool.NewWithConfig(context.Background(), config)
+	if err != nil {
+		log.Fatalf("Unable to connect to database: %v\n", err)
+	}
+
+	// Test connection
+	err = DB.Ping(context.Background())
+	if err != nil {
+		log.Fatalf("Unable to ping the database: %v\n", err)
+	}
+
+	log.Println("Connected to database")
+	return DB, nil
 }

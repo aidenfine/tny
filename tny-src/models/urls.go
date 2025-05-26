@@ -16,3 +16,7 @@ type UrlsDataBaseItem struct {
 	CreatedAt string  `json:"createdAt" db:"created_at"`
 	ExpiresAt string  `json:"expiresAt" db:"expires_at"`
 }
+
+type ApiKeyItem struct {
+	key string
+}
